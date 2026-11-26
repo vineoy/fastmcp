@@ -12,10 +12,17 @@ def _configure_output_streams() -> None:
     success messages then raises ``UnicodeEncodeError`` and turns a successful
     command into a traceback.  Replacing unencodable characters matches what a
     terminal does and keeps the command usable.
+
+    Streams that already use a non-strict error handler (for example stderr's
+    default ``backslashreplace``) are left alone so their existing output is
+    preserved.
     """
     for stream in (sys.stdout, sys.stderr):
         reconfigure = getattr(stream, "reconfigure", None)
         if reconfigure is None:
+            continue
+        errors = getattr(stream, "errors", None)
+        if errors is not None and errors != "strict":
             continue
         # Detached or otherwise non-reconfigurable streams (for example test
         # capture objects) are left untouched.

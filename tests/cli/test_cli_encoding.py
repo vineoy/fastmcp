@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from fastmcp.cli import _configure_output_streams
 
 
@@ -18,6 +20,17 @@ def test_configure_output_streams_replaces_unencodable_characters(monkeypatch):
     assert stream.errors == "replace"
     stream.write("\u2713")
     stream.flush()
+
+
+@pytest.mark.parametrize("errors", ["backslashreplace", "replace", "surrogateescape"])
+def test_configure_output_streams_preserves_non_strict_handlers(monkeypatch, errors):
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors=errors)
+    monkeypatch.setattr(sys, "stdout", stream)
+    monkeypatch.setattr(sys, "stderr", stream)
+
+    _configure_output_streams()
+
+    assert stream.errors == errors
 
 
 def test_cli_survives_redirected_cp1252_output():
